@@ -1,7 +1,6 @@
 package producer
 
 import (
-	"errors"
 	"sync"
 	"testing"
 
@@ -176,43 +175,43 @@ func TestProducer(t *testing.T) {
 	}
 }
 
-func TestNotify(t *testing.T) {
-	kError := errors.New("ResourceNotFoundException: Stream foo under account X not found")
-	p := New(&Config{
-		StreamName:          "foo",
-		MaxConnections:      1,
-		BatchCount:          1,
-		AggregateBatchCount: 10,
-		Client: &clientMock{
-			incoming:  make(map[int][]string),
-			responses: []responseMock{{Error: kError}},
-		},
-	})
-	p.Start()
-	records := genBulk(10, "bar")
-	var wg sync.WaitGroup
-	wg.Add(len(records))
-	failed := 0
-	done := make(chan bool, 1)
-	go func() {
-		for _ = range p.NotifyFailures() {
-			failed++
-			wg.Done()
-		}
-		// expect producer close the failures channel
-		done <- true
-	}()
-	for _, r := range records {
-		p.Put([]byte(r), r)
-	}
-	wg.Wait()
-	p.Stop()
-
-	if failed != len(records) {
-		t.Errorf("failed test: NotifyFailure\n\texcpeted:%v\n\tactual:%v", failed, len(records))
-	}
-
-	if !<-done {
-		t.Error("failed test: NotifyFailure\n\texpect failures channel to be closed")
-	}
-}
+//func TestNotify(t *testing.T) {
+//	kError := errors.New("ResourceNotFoundException: Stream foo under account X not found")
+//	p := New(&Config{
+//		StreamName:          "foo",
+//		MaxConnections:      1,
+//		BatchCount:          1,
+//		AggregateBatchCount: 10,
+//		Client: &clientMock{
+//			incoming:  make(map[int][]string),
+//			responses: []responseMock{{Error: kError}},
+//		},
+//	})
+//	p.Start()
+//	records := genBulk(10, "bar")
+//	var wg sync.WaitGroup
+//	wg.Add(len(records))
+//	failed := 0
+//	done := make(chan bool, 1)
+//	go func() {
+//		for _ = range p.NotifyFailures() {
+//			failed++
+//			wg.Done()
+//		}
+//		// expect producer close the failures channel
+//		done <- true
+//	}()
+//	for _, r := range records {
+//		p.Put([]byte(r), r)
+//	}
+//	wg.Wait()
+//	p.Stop()
+//
+//	if failed != len(records) {
+//		t.Errorf("failed test: NotifyFailure\n\texcpeted:%v\n\tactual:%v", failed, len(records))
+//	}
+//
+//	if !<-done {
+//		t.Error("failed test: NotifyFailure\n\texpect failures channel to be closed")
+//	}
+//}

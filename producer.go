@@ -249,14 +249,19 @@ func (p *Producer) flush(records []*kinesis.PutRecordsRequestEntry, reason strin
 		})
 
 		if err != nil {
-			p.Logger.Error("flush", err)
-			p.RLock()
-			notify := p.notify
-			p.RUnlock()
-			if notify {
-				p.dispatchFailures(records, err)
-			}
-			return
+			// PutRecords could fail due to network timeouts. We want to retry those failures,
+			// so do not modify records
+			p.Logger.Error("PutRecords returned a hard error when attempting to put the records to Kinesis", err)
+			continue
+
+			// p.Logger.Error("flush", err)
+			// p.RLock()
+			// notify := p.notify
+			// p.RUnlock()
+			// if notify {
+			//	 p.dispatchFailures(records, err)
+			// }
+			// return
 		}
 
 		if p.Verbose {
