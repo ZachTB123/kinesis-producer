@@ -241,6 +241,8 @@ func (p *Producer) flush(records []*kinesis.PutRecordsRequestEntry, reason strin
 
 	defer p.semaphore.release()
 
+	hardErrCount := 0
+
 	for {
 		p.Logger.Info("flushing records", LogValue{"reason", reason}, LogValue{"records", len(records)})
 		out, err := p.Client.PutRecords(&kinesis.PutRecordsInput{
@@ -249,19 +251,23 @@ func (p *Producer) flush(records []*kinesis.PutRecordsRequestEntry, reason strin
 		})
 
 		if err != nil {
-			// PutRecords could fail due to network timeouts. We want to retry those failures,
-			// so do not modify records
-			p.Logger.Error("PutRecords returned a hard error when attempting to put the records to Kinesis", err)
-			continue
+			hardErrCount++
 
-			// p.Logger.Error("flush", err)
-			// p.RLock()
-			// notify := p.notify
-			// p.RUnlock()
-			// if notify {
-			//	 p.dispatchFailures(records, err)
-			// }
-			// return
+			if hardErrCount <= p.Config.MaxAllowedHardErrsPerFlush {
+				// PutRecords could fail due to network timeouts. We want to retry those failures,
+				// so do not modify records
+				p.Logger.Error("PutRecords returned a hard error when attempting to put the records to Kinesis", err)
+				continue
+			}
+
+			p.Logger.Error("flush", err)
+			p.RLock()
+			notify := p.notify
+			p.RUnlock()
+			if notify {
+				p.dispatchFailures(records, err)
+			}
+			return
 		}
 
 		if p.Verbose {

@@ -11,15 +11,16 @@ import (
 // Constants and default configuration take from:
 // github.com/awslabs/amazon-kinesis-producer/.../KinesisProducerConfiguration.java
 const (
-	maxRecordSize          = 1 << 20 // 1MiB
-	maxRequestSize         = 5 << 20 // 5MiB
-	maxRecordsPerRequest   = 500
-	maxAggregationSize     = 1048576 // 1MiB
-	maxAggregationCount    = 4294967295
-	defaultAggregationSize = 51200 // 50k
-	defaultMaxConnections  = 24
-	defaultFlushInterval   = 5 * time.Second
-	partitionKeyIndexSize  = 8
+	maxRecordSize                     = 1 << 20 // 1MiB
+	maxRequestSize                    = 5 << 20 // 5MiB
+	maxRecordsPerRequest              = 500
+	maxAggregationSize                = 1048576 // 1MiB
+	maxAggregationCount               = 4294967295
+	defaultAggregationSize            = 51200 // 50k
+	defaultMaxConnections             = 24
+	defaultFlushInterval              = 5 * time.Second
+	partitionKeyIndexSize             = 8
+	defaultMaxAllowedHardErrsPerFlush = 10
 )
 
 // Putter is the interface that wraps the KinesisAPI.PutRecords method.
@@ -64,6 +65,13 @@ type Config struct {
 
 	// Client is the Putter interface implementation.
 	Client Putter
+
+	// The maximum number of hard errors (PutKinesisRecords returns an error)
+	// allowed per flush. PutKinesisRecords may return an error, such as from
+	// TCP timeouts. We still want to retry those records in this case. After
+	// this number has been reached, records will be sent to the failure
+	// channel as normal
+	MaxAllowedHardErrsPerFlush int
 }
 
 // defaults for configuration
@@ -98,6 +106,9 @@ func (c *Config) defaults() {
 		c.FlushInterval = defaultFlushInterval
 	}
 	falseOrPanic(len(c.StreamName) == 0, "kinesis: StreamName length must be at least 1")
+	if c.MaxAllowedHardErrsPerFlush == 0 {
+		c.MaxAllowedHardErrsPerFlush = defaultMaxAllowedHardErrsPerFlush
+	}
 }
 
 func falseOrPanic(p bool, msg string) {
