@@ -260,6 +260,8 @@ func (p *Producer) flush(records []*kinesis.PutRecordsRequestEntry, reason strin
 				continue
 			}
 
+			p.Logger.Info("Max allowed PutRecords errors exceeded, dispatching failed records")
+
 			p.Logger.Error("flush", err)
 			p.RLock()
 			notify := p.notify
