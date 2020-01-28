@@ -2,6 +2,7 @@ package producer
 
 import (
 	"errors"
+	"fmt"
 	"sync"
 	"testing"
 
@@ -148,6 +149,61 @@ var testCases = []testCase{
 			1: genBulk(10, "foo"),
 		},
 	},
+	{
+		"retry hard failures successfully retries all",
+		&Config{BatchCount: 10, AggregateBatchCount: 1, BacklogCount: 1, MaxAllowedHardErrsPerFlush: 2},
+		[]string{"hello", "world"},
+		&clientMock{
+			incoming: make(map[int][]string),
+			responses: []responseMock{
+				{
+					Error: fmt.Errorf("tcp timeout"),
+					Response: nil,
+				},
+				{
+					Error: nil,
+					Response: &k.PutRecordsOutput{
+						FailedRecordCount: aws.Int64(0),
+					},
+				},
+			}},
+		map[int][]string{
+			0: []string{"hello", "world"},
+			1: []string{"hello", "world"},
+		},
+	},
+	{
+		"retry hard failures fails some records",
+		&Config{BatchCount: 2, AggregateBatchCount: 1, BacklogCount: 1, MaxAllowedHardErrsPerFlush: 1},
+		[]string{"hello", "world"},
+		&clientMock{
+			incoming: make(map[int][]string),
+			responses: []responseMock{
+				{
+					Error: fmt.Errorf("tcp timeout"),
+					Response: nil,
+				},
+				{
+					Error: nil,
+					Response: &k.PutRecordsOutput{
+						FailedRecordCount: aws.Int64(1),
+						Records: []*k.PutRecordsResultEntry{
+							{SequenceNumber: aws.String("3"), ShardId: aws.String("1")},
+							{ErrorCode: aws.String("400")},
+						},
+					},
+				},
+				{
+					Error: fmt.Errorf("tcp timeout"),
+					Response: nil,
+				},
+			}},
+		map[int][]string{
+			0: []string{"hello", "world"},
+			1: []string{"hello", "world"},
+			2: []string{"world"},
+		},
+	},
 }
 
 func TestProducer(t *testing.T) {
@@ -169,7 +225,7 @@ func TestProducer(t *testing.T) {
 		p.Stop()
 		for k, v := range test.putter.incoming {
 			if len(v) != len(test.outgoing[k]) {
-				t.Errorf("failed test: %s\n\texcpeted:%v\n\tactual:  %v", test.name,
+				t.Errorf("failed test: %s\n\texpected:%v\n\tactual:  %v", test.name,
 					test.outgoing, test.putter.incoming)
 			}
 		}

@@ -256,7 +256,7 @@ func (p *Producer) flush(records []*kinesis.PutRecordsRequestEntry, reason strin
 			if hardErrCount <= p.Config.MaxAllowedHardErrsPerFlush {
 				// PutRecords could fail due to network timeouts. We want to retry those failures,
 				// so do not modify records
-				p.Logger.Error("PutRecords returned a hard error when attempting to put the records to Kinesis", err)
+				p.Logger.Error("PutRecords returned a hard error when attempting to put the records to Kinesis: ", err)
 				continue
 			}
 
