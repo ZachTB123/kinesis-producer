@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"sync"
 	"testing"
+	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
 	k "github.com/aws/aws-sdk-go/service/kinesis"
@@ -151,13 +152,13 @@ var testCases = []testCase{
 	},
 	{
 		"retry hard failures successfully retries all",
-		&Config{BatchCount: 10, AggregateBatchCount: 1, BacklogCount: 1, MaxAllowedHardErrsPerFlush: 2},
+		&Config{BatchCount: 10, AggregateBatchCount: 1, BacklogCount: 1, MaxAllowedHardErrsPerFlush: 2, SleepDelayAfterHardErr: 1 * time.Millisecond},
 		[]string{"hello", "world"},
 		&clientMock{
 			incoming: make(map[int][]string),
 			responses: []responseMock{
 				{
-					Error: fmt.Errorf("tcp timeout"),
+					Error:    fmt.Errorf("tcp timeout"),
 					Response: nil,
 				},
 				{
@@ -174,13 +175,13 @@ var testCases = []testCase{
 	},
 	{
 		"retry hard failures fails some records",
-		&Config{BatchCount: 2, AggregateBatchCount: 1, BacklogCount: 1, MaxAllowedHardErrsPerFlush: 1},
+		&Config{BatchCount: 2, AggregateBatchCount: 1, BacklogCount: 1, MaxAllowedHardErrsPerFlush: 1, SleepDelayAfterHardErr: 1 * time.Millisecond},
 		[]string{"hello", "world"},
 		&clientMock{
 			incoming: make(map[int][]string),
 			responses: []responseMock{
 				{
-					Error: fmt.Errorf("tcp timeout"),
+					Error:    fmt.Errorf("tcp timeout"),
 					Response: nil,
 				},
 				{
@@ -194,7 +195,7 @@ var testCases = []testCase{
 					},
 				},
 				{
-					Error: fmt.Errorf("tcp timeout"),
+					Error:    fmt.Errorf("tcp timeout"),
 					Response: nil,
 				},
 			}},
