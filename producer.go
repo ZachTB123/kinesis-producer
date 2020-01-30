@@ -239,6 +239,10 @@ func (p *Producer) flush(records []*kinesis.PutRecordsRequestEntry, reason strin
 		Jitter: true,
 	}
 
+	hardErrBackoff := &backoff.Backoff{
+		Jitter: true,
+	}
+
 	defer p.semaphore.release()
 
 	hardErrCount := 0
@@ -258,7 +262,8 @@ func (p *Producer) flush(records []*kinesis.PutRecordsRequestEntry, reason strin
 				// so do not modify records
 				p.Logger.Error("PutRecords returned a hard error when attempting to put records to Kinesis", err)
 
-				time.Sleep(p.Config.SleepDelayAfterHardErr)
+				backoffDuration := hardErrBackoff.Duration()
+				time.Sleep(backoffDuration)
 
 				continue
 			}

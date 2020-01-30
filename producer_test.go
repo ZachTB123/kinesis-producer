@@ -3,12 +3,10 @@ package producer
 import (
 	"errors"
 	"fmt"
-	"sync"
-	"testing"
-	"time"
-
 	"github.com/aws/aws-sdk-go/aws"
 	k "github.com/aws/aws-sdk-go/service/kinesis"
+	"sync"
+	"testing"
 )
 
 type responseMock struct {
@@ -152,7 +150,7 @@ var testCases = []testCase{
 	},
 	{
 		"retry hard failures successfully retries all",
-		&Config{BatchCount: 10, AggregateBatchCount: 1, BacklogCount: 1, MaxAllowedHardErrsPerFlush: 2, SleepDelayAfterHardErr: 1 * time.Millisecond},
+		&Config{BatchCount: 10, AggregateBatchCount: 1, BacklogCount: 1, MaxAllowedHardErrsPerFlush: 2},
 		[]string{"hello", "world"},
 		&clientMock{
 			incoming: make(map[int][]string),
@@ -175,7 +173,7 @@ var testCases = []testCase{
 	},
 	{
 		"retry hard failures fails some records",
-		&Config{BatchCount: 2, AggregateBatchCount: 1, BacklogCount: 1, MaxAllowedHardErrsPerFlush: 1, SleepDelayAfterHardErr: 1 * time.Millisecond},
+		&Config{BatchCount: 2, AggregateBatchCount: 1, BacklogCount: 1, MaxAllowedHardErrsPerFlush: 1},
 		[]string{"hello", "world"},
 		&clientMock{
 			incoming: make(map[int][]string),

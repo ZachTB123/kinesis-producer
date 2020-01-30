@@ -21,7 +21,6 @@ const (
 	defaultFlushInterval              = 5 * time.Second
 	partitionKeyIndexSize             = 8
 	defaultMaxAllowedHardErrsPerFlush = 10
-	defaultSleepDelayAfterHardErr     = 3 * time.Second
 )
 
 // Putter is the interface that wraps the KinesisAPI.PutRecords method.
@@ -73,9 +72,6 @@ type Config struct {
 	// this number has been reached, records will be sent to the failure
 	// channel as normal
 	MaxAllowedHardErrsPerFlush int
-
-	// The amount of time to sleep after flush encounters a hard error (PutKinesisRecords returns an error)
-	SleepDelayAfterHardErr time.Duration
 }
 
 // defaults for configuration
@@ -112,9 +108,6 @@ func (c *Config) defaults() {
 	falseOrPanic(len(c.StreamName) == 0, "kinesis: StreamName length must be at least 1")
 	if c.MaxAllowedHardErrsPerFlush == 0 {
 		c.MaxAllowedHardErrsPerFlush = defaultMaxAllowedHardErrsPerFlush
-	}
-	if c.SleepDelayAfterHardErr == 0 {
-		c.SleepDelayAfterHardErr = defaultSleepDelayAfterHardErr
 	}
 }
 
