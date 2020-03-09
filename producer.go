@@ -248,7 +248,7 @@ func (p *Producer) flush(records []*kinesis.PutRecordsRequestEntry, reason strin
 	hardErrCount := 0
 
 	for {
-		p.Logger.Info("flushing records", LogValue{"reason", reason}, LogValue{"records", len(records)})
+		p.Logger.Info("flushing records", LogValue{"reason", reason}, LogValue{"records", len(records)}, LogValue{"buffer", len(p.records)})
 		out, err := p.Client.PutRecords(&kinesis.PutRecordsInput{
 			StreamName: &p.StreamName,
 			Records:    records,
