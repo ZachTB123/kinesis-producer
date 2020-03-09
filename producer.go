@@ -278,13 +278,39 @@ func (p *Producer) flush(records []*kinesis.PutRecordsRequestEntry, reason strin
 			return
 		}
 
+		// count error codes
+		errorCodes := map[string]int{}
+		for _, r := range out.Records {
+			if r.ErrorCode == nil {
+				continue
+			}
+
+			if val, ok := errorCodes[*r.ErrorCode]; ok {
+				errorCodes[*r.ErrorCode] = val + 1
+			} else {
+				errorCodes[*r.ErrorCode] = 1
+			}
+		}
+
 		duration := b.Duration()
+
+		// append error codes to log statement
+		values := []LogValue{
+			{"failures", failed},
+			{"records", len(out.Records)},
+			{"backoff", duration.String()},
+		}
+
+		for k, v := range errorCodes {
+			values = append(values, LogValue{
+				Name:  k,
+				Value: v,
+			})
+		}
 
 		p.Logger.Info(
 			"put failures",
-			LogValue{"failures", failed},
-			LogValue{"records", len(out.Records)},
-			LogValue{"backoff", duration.String()},
+			values...,
 		)
 		time.Sleep(duration)
 
